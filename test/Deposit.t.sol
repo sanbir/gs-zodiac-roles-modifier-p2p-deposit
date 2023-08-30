@@ -40,14 +40,28 @@ contract Deposit is Test {
 
         vm.startPrank(address(ensTimelockController));
 
+        bytes memory txsForMultCall = getTxsForMultiCall();
+        console.logBytes(txsForMultCall);
+    }
+
+    function getTxsForMultiCall() private view returns(bytes memory txsForMultCall) {
         bytes memory assignRolesCalldata = getAssignRolesCalldata();
-        console.logBytes(assignRolesCalldata);
-
         bytes memory allowTargetCalldata = getAllowTargetCalldata();
-        console.logBytes(allowTargetCalldata);
-
         bytes memory scopeAllowFunctionCalldata = getScopeAllowFunctionCalldata();
-        console.logBytes(scopeAllowFunctionCalldata);
+
+        bytes memory assignRolesTxForMultiSend = getTxForMultiSend(assignRolesCalldata);
+        bytes memory allowTargetTxForMultiSend = getTxForMultiSend(allowTargetCalldata);
+        bytes memory scopeAllowFunctionTxForMultiSend = getTxForMultiSend(scopeAllowFunctionCalldata);
+
+        txsForMultCall = abi.encodePacked(assignRolesTxForMultiSend, allowTargetTxForMultiSend, scopeAllowFunctionTxForMultiSend);
+    }
+
+    function getTxForMultiSend(bytes memory data) private pure returns(bytes memory txForMultiSend) {
+        uint8 operation = uint8(0);
+        address to = address(roles);
+        uint256 value = 0;
+        uint256 dataLength = data.length;
+        txForMultiSend = abi.encodePacked(operation, to, value, dataLength, data);
     }
 
     function getAssignRolesCalldata() private pure returns(bytes memory assignRolesCalldata) {
