@@ -35,13 +35,46 @@ contract Deposit is Test {
     }
 
     function test_Deposit() public {
-        string memory version = ensSafe.VERSION();
-        console.log(version);
+        bytes memory txsForMultCall = getTxsForMultiCall();
+        bytes memory multiSendCallData = abi.encodeWithSelector(
+            MultiSendCallOnly.multiSend.selector, txsForMultCall
+        );
+
+        address to = address(multiSendCallOnly);
+        console.log(to);
+
+        uint256 value = 0;
+        console.log(value);
+
+        bytes memory data = multiSendCallData;
+        console.logBytes(data);
+
+        GnosisSafe.Operation operation = GnosisSafe.Operation.DelegateCall;
+        console.log(uint8(operation));
+
+        uint256 safeTxGas = 0;
+        uint256 baseGas = 0;
+        uint256 gasPrice = 0;
+        address gasToken = address(0);
+        address payable refundReceiver = payable(address(0));
+
+        bytes memory signatures = abi.encodePacked(hex'000000000000000000000000', address(ensTimelockController), hex'00', uint256(1));
+        console.logBytes(signatures);
 
         vm.startPrank(address(ensTimelockController));
 
-        bytes memory txsForMultCall = getTxsForMultiCall();
-        console.logBytes(txsForMultCall);
+        ensSafe.execTransaction(
+            to,
+            value,
+            data,
+            operation,
+            safeTxGas,
+            baseGas,
+            gasPrice,
+            gasToken,
+            refundReceiver,
+            signatures
+        );
     }
 
     function getTxsForMultiCall() private view returns(bytes memory txsForMultCall) {
