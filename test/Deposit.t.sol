@@ -32,21 +32,64 @@ contract Deposit is Test {
 
     function setUp() public {
         // vm.createSelectFork("mainnet");
-        vm.createSelectFork("goerli", 9594710);
+        vm.createSelectFork("goerli", 9601060);
     }
 
     function test_Deposit() public {
-        // allowPilotToDeposit();
+        allowPilotToDeposit();
 
         deposit();
     }
 
     function deposit() private {
-        bytes memory depositCalldata = getDepositCalldata();
-        console.logBytes(depositCalldata);
+        bytes memory execTransactionWithRoleCalldata = getExecTransactionWithRoleCalldata();
+
+        address to = address(roles);
+        uint256 value = 0;
+        bytes memory data = execTransactionWithRoleCalldata;
+        GnosisSafe.Operation operation = GnosisSafe.Operation.Call;
+        uint256 safeTxGas = 0;
+        uint256 baseGas = 0;
+        uint256 gasPrice = 0;
+        address gasToken = address(0);
+        address payable refundReceiver = payable(address(0));
+        bytes memory signatures = abi.encodePacked(hex'000000000000000000000000', address(pilotSafeOwner), hex'00', uint256(1));
+
+        vm.startPrank(address(pilotSafeOwner));
+        pilotSafe.execTransaction(
+            to,
+            value,
+            data,
+            operation,
+            safeTxGas,
+            baseGas,
+            gasPrice,
+            gasToken,
+            refundReceiver,
+            signatures
+        );
+        vm.stopPrank();
     }
 
-    function getDepositCalldata() private view returns(bytes memory depositCalldata) {
+    function getExecTransactionWithRoleCalldata() private view returns(bytes memory execTransactionWithRoleCalldata) {
+        address to = address(p2pEth2Depositor);
+        uint256 value = 32 ether;
+        bytes memory data = getDepositCalldata();
+        Roles.Operation operation = Roles.Operation.Call;
+        uint16 role = ROLE;
+        bool shouldRevert = false;
+        execTransactionWithRoleCalldata = abi.encodeWithSelector(
+            Roles.execTransactionWithRole.selector,
+            to,
+            value,
+            data,
+            operation,
+            role,
+            shouldRevert
+        );
+    }
+
+    function getDepositCalldata() private pure returns(bytes memory depositCalldata) {
         // IMPORTANT!!!
         // REPLACE with values with real ones!!!!
 
