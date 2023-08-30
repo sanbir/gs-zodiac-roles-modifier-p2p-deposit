@@ -26,6 +26,7 @@ contract Deposit is Test {
     TimelockController constant ensTimelockController = TimelockController(0x77777776dD9e859b22c029ab230E94779F83A541); // ensSafe owner
     GnosisSafe constant ensSafe = GnosisSafe(0x14d91faAca6a7aa4C1ac371C15425eAc5A75dADB); // roles owner
     Roles constant roles = Roles(0xa8824FE7760a06E2587C86b33640C981b5E31e0D);
+    address constant pilotSafeOwner = 0x000A0660FC6c21B6C8638c56f7a8BbE22DCC9000;
     GnosisSafe constant pilotSafe = GnosisSafe(0x32795D2374A047e1B8591463cDB8E5B34c6dd89D);
     P2pEth2Depositor p2pEth2Depositor = P2pEth2Depositor(0x2E0743aAAB3118945564b715598B7DF10e083dC1);
 
@@ -35,7 +36,49 @@ contract Deposit is Test {
     }
 
     function test_Deposit() public {
-        allowPilotToDeposit();
+        // allowPilotToDeposit();
+
+        deposit();
+    }
+
+    function deposit() private {
+        bytes memory depositCalldata = getDepositCalldata();
+        console.logBytes(depositCalldata);
+    }
+
+    function getDepositCalldata() private view returns(bytes memory depositCalldata) {
+        // IMPORTANT!!!
+        // REPLACE with values with real ones!!!!
+
+        bytes[] memory _pubkeys = new bytes[](1);
+        _pubkeys[0] = bytes(hex'83a4ef7601d0cfb1c2eab8faac139742f4715e75ea0056ce15c8828796f1cf98d66285ebf50a369657ebe26e4b74487f');
+
+        bytes memory _withdrawal_credentials = bytes(hex'01000000000000000000000014d91faaca6a7aa4c1ac371c15425eac5a75dadb');
+
+        bytes[] memory _signatures = new bytes[](1);
+        _signatures[0] = bytes(hex'82674fe50bf4c31fbd083a5942ffaf8b16dd656b721d08f7b1d0eab2afde193a2c84505d26aa051e0fbdf93a0dc5b6290c7aa50edae2cf77916ca3969fd84276c90fdcb4bff017af9041756d3a7ce5d3f0a8538b7b81ad2251d1d4a012a6b526');
+
+        bytes32[] memory _deposit_data_roots = new bytes32[](1);
+        _deposit_data_roots[0] = bytes32(hex'25be029c244762325fa02e572de477c994efa2d27a70a6425d14eea86da78de4');
+
+        P2pEth2Depositor.FeeRecipient memory _clientConfig = P2pEth2Depositor.FeeRecipient({
+            recipient: payable(address(ensSafe)),
+            basisPoints: 10000
+        });
+        P2pEth2Depositor.FeeRecipient memory _referrerConfig = P2pEth2Depositor.FeeRecipient({
+            recipient: payable(address(0)),
+            basisPoints: 0
+        });
+
+        depositCalldata = abi.encodeWithSelector(
+            P2pEth2Depositor.deposit.selector,
+            _pubkeys,
+            _withdrawal_credentials,
+            _signatures,
+            _deposit_data_roots,
+            _clientConfig,
+            _referrerConfig
+        );
     }
 
     function allowPilotToDeposit() private {
