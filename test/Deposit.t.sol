@@ -37,6 +37,8 @@ contract Deposit is Test {
 
     function setUp() public {
         vm.createSelectFork("mainnet");
+        vm.deal(address(ensSafe), 32 ether);
+
         // vm.createSelectFork("goerli", 9601060);
     }
 
