@@ -16,6 +16,7 @@ import "../src/P2pEth2Depositor.sol";
 
 contract Deposit is Test {
     uint16 constant ROLE = 1;
+    address constant eth2DepositContract = 0x00000000219ab540356cBB839Cbe05303d7705Fa;
     MultiSendCallOnly constant multiSendCallOnly = MultiSendCallOnly(0x40A2aCCbd92BCA938b02010E17A5b8929b49130D);
 
     TimelockController constant ensTimelockController = TimelockController(0xFe89cc7aBB2C4183683ab71653C4cdc9B02D44b7); // ensSafe owner
@@ -34,9 +35,17 @@ contract Deposit is Test {
     }
 
     function test_Deposit() public {
-        allowPilotToDeposit();
+        uint256 ensSafeBalanceBefore = address(ensSafe).balance;
+        uint256 eth2DepositContractBalanceBefore = address(eth2DepositContract).balance;
 
+        allowPilotToDeposit();
         deposit();
+
+        uint256 ensSafeBalanceAfter = address(ensSafe).balance;
+        uint256 eth2DepositContractBalanceAfter = address(eth2DepositContract).balance;
+
+        assertEq(eth2DepositContractBalanceAfter - eth2DepositContractBalanceBefore, 32 ether);
+        assertEq(ensSafeBalanceBefore - ensSafeBalanceAfter, 32 ether);
     }
 
     function deposit() private {
