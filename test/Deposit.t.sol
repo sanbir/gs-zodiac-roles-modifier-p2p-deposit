@@ -28,18 +28,9 @@ contract Deposit is Test {
     GnosisSafe constant pilotSafe = GnosisSafe(0xb423e0f6E7430fa29500c5cC9bd83D28c8BD8978);
     P2pEth2Depositor p2pEth2Depositor = P2pEth2Depositor(0x8e76a33f1aFf7EB15DE832810506814aF4789536);
 
-//    TimelockController constant ensTimelockController = TimelockController(0x77777776dD9e859b22c029ab230E94779F83A541); // ensSafe owner
-//    GnosisSafe constant ensSafe = GnosisSafe(0x14d91faAca6a7aa4C1ac371C15425eAc5A75dADB); // roles owner
-//    Roles constant roles = Roles(0xa8824FE7760a06E2587C86b33640C981b5E31e0D);
-//    address constant pilotSafeOwner = 0x000A0660FC6c21B6C8638c56f7a8BbE22DCC9000;
-//    GnosisSafe constant pilotSafe = GnosisSafe(0x32795D2374A047e1B8591463cDB8E5B34c6dd89D);
-//    P2pEth2Depositor p2pEth2Depositor = P2pEth2Depositor(0x2E0743aAAB3118945564b715598B7DF10e083dC1);
-
     function setUp() public {
         vm.createSelectFork("mainnet");
         vm.deal(address(ensSafe), 32 ether);
-
-        // vm.createSelectFork("goerli", 9601060);
     }
 
     function test_Deposit() public {
@@ -119,19 +110,16 @@ contract Deposit is Test {
     }
 
     function getDepositCalldata() private pure returns(bytes memory depositCalldata) {
-        // IMPORTANT!!!
-        // REPLACE with values with real ones!!!!
-
         bytes[] memory _pubkeys = new bytes[](1);
-        _pubkeys[0] = bytes(hex'83a4ef7601d0cfb1c2eab8faac139742f4715e75ea0056ce15c8828796f1cf98d66285ebf50a369657ebe26e4b74487f');
+        _pubkeys[0] = bytes(hex'889856edb78ebcd7773d41dd18cf1344cba272dd9fecd6b2e1ec83d833243829b47b4863f43cb89dfb7423b1c13b16bc');
 
-        bytes memory _withdrawal_credentials = bytes(hex'01000000000000000000000014d91faaca6a7aa4c1ac371c15425eac5a75dadb');
+        bytes memory _withdrawal_credentials = bytes(hex'0100000000000000000000004f2083f5fbede34c2714affb3105539775f7fe64');
 
         bytes[] memory _signatures = new bytes[](1);
-        _signatures[0] = bytes(hex'82674fe50bf4c31fbd083a5942ffaf8b16dd656b721d08f7b1d0eab2afde193a2c84505d26aa051e0fbdf93a0dc5b6290c7aa50edae2cf77916ca3969fd84276c90fdcb4bff017af9041756d3a7ce5d3f0a8538b7b81ad2251d1d4a012a6b526');
+        _signatures[0] = bytes(hex'b95f9e5bc3773e6fa71481e3df4bee70b571d8bde180634d7b5294e378c4d2f54536c8969b9fc9e2a0f848b0279091d515fa29046c091575758f50428510590ba4555bc600fd911658bf69a726d691318d3a5be7a768a346269c449233664b3a');
 
         bytes32[] memory _deposit_data_roots = new bytes32[](1);
-        _deposit_data_roots[0] = bytes32(hex'25be029c244762325fa02e572de477c994efa2d27a70a6425d14eea86da78de4');
+        _deposit_data_roots[0] = bytes32(hex'db7dc1b147769b8df692e4abc98460e2f72d2e2176e644446e622c432aa61548');
 
         P2pEth2Depositor.FeeRecipient memory _clientConfig = P2pEth2Depositor.FeeRecipient({
             recipient: payable(address(ensSafe)),
