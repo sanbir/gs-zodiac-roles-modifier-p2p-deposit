@@ -12,11 +12,10 @@ import "../src/GnosisSafe.sol";
 import "../src/Roles.sol";
 import "../src/TimelockController.sol";
 import "../src/MultiSendCallOnly.sol";
-import "../src/P2pEth2Depositor.sol";
+import "../src/P2pMessageSender.sol";
 
-contract Deposit is Test {
-    uint16 constant ROLE = 1;
-    address constant eth2DepositContract = 0x00000000219ab540356cBB839Cbe05303d7705Fa;
+contract VoluntaryExit is Test {
+    uint16 constant ROLE = 2;
     MultiSendCallOnly constant multiSendCallOnly = MultiSendCallOnly(0x40A2aCCbd92BCA938b02010E17A5b8929b49130D);
 
     TimelockController constant ensTimelockController = TimelockController(0xFe89cc7aBB2C4183683ab71653C4cdc9B02D44b7); // ensSafe owner
@@ -27,28 +26,18 @@ contract Deposit is Test {
     address constant pilotSafeOwner3 = 0x62497dedbe514fFBA23F3FC8AD976FbAEE439E4f;
     address constant pilotSafeOwner4 = 0xeC8fdF488806DFa8F88cb52e0e5833700F25A245;
     GnosisSafe constant pilotSafe = GnosisSafe(0xb423e0f6E7430fa29500c5cC9bd83D28c8BD8978);
-    P2pEth2Depositor constant p2pEth2Depositor = P2pEth2Depositor(0x8e76a33f1aFf7EB15DE832810506814aF4789536);
+    P2pMessageSender constant p2pMessageSender = P2pMessageSender(0x4E1224f513048e18e7a1883985B45dc0Fe1D917e);
 
     function setUp() public {
         vm.createSelectFork("mainnet");
-        vm.deal(address(ensSafe), 32 ether);
     }
 
-    function test_Deposit() public {
-        uint256 ensSafeBalanceBefore = address(ensSafe).balance;
-        uint256 eth2DepositContractBalanceBefore = address(eth2DepositContract).balance;
-
-        allowPilotToDeposit();
-        deposit();
-
-        uint256 ensSafeBalanceAfter = address(ensSafe).balance;
-        uint256 eth2DepositContractBalanceAfter = address(eth2DepositContract).balance;
-
-        assertEq(eth2DepositContractBalanceAfter - eth2DepositContractBalanceBefore, 32 ether);
-        assertEq(ensSafeBalanceBefore - ensSafeBalanceAfter, 32 ether);
+    function test_VoluntaryExit() public {
+        allowPilotToSendMessage();
+        sendExitMessage();
     }
 
-    function deposit() private {
+    function sendExitMessage() private {
         bytes memory execTransactionWithRoleCalldata = getExecTransactionWithRoleCalldata();
 
         address to = address(roles);
@@ -101,9 +90,9 @@ contract Deposit is Test {
     }
 
     function getExecTransactionWithRoleCalldata() private pure returns(bytes memory execTransactionWithRoleCalldata) {
-        address to = address(p2pEth2Depositor);
-        uint256 value = 32 ether;
-        bytes memory data = getDepositCalldata();
+        address to = address(p2pMessageSender);
+        uint256 value = 0;
+        bytes memory data = getExitMessageCalldata();
         Roles.Operation operation = Roles.Operation.Call;
         uint16 role = ROLE;
         bool shouldRevert = false;
@@ -118,39 +107,14 @@ contract Deposit is Test {
         );
     }
 
-    function getDepositCalldata() private pure returns(bytes memory depositCalldata) {
-        bytes[] memory _pubkeys = new bytes[](1);
-        _pubkeys[0] = bytes(hex'889856edb78ebcd7773d41dd18cf1344cba272dd9fecd6b2e1ec83d833243829b47b4863f43cb89dfb7423b1c13b16bc');
-
-        bytes memory _withdrawal_credentials = bytes(hex'0100000000000000000000004f2083f5fbede34c2714affb3105539775f7fe64');
-
-        bytes[] memory _signatures = new bytes[](1);
-        _signatures[0] = bytes(hex'b95f9e5bc3773e6fa71481e3df4bee70b571d8bde180634d7b5294e378c4d2f54536c8969b9fc9e2a0f848b0279091d515fa29046c091575758f50428510590ba4555bc600fd911658bf69a726d691318d3a5be7a768a346269c449233664b3a');
-
-        bytes32[] memory _deposit_data_roots = new bytes32[](1);
-        _deposit_data_roots[0] = bytes32(hex'db7dc1b147769b8df692e4abc98460e2f72d2e2176e644446e622c432aa61548');
-
-        P2pEth2Depositor.FeeRecipient memory _clientConfig = P2pEth2Depositor.FeeRecipient({
-            recipient: payable(address(ensSafe)),
-            basisPoints: 10000
-        });
-        P2pEth2Depositor.FeeRecipient memory _referrerConfig = P2pEth2Depositor.FeeRecipient({
-            recipient: payable(address(0)),
-            basisPoints: 0
-        });
-
-        depositCalldata = abi.encodeWithSelector(
-            P2pEth2Depositor.deposit.selector,
-            _pubkeys,
-            _withdrawal_credentials,
-            _signatures,
-            _deposit_data_roots,
-            _clientConfig,
-            _referrerConfig
+    function getExitMessageCalldata() private pure returns(bytes memory exitCalldata) {
+        string memory text = "{\"action\":\"withdraw\",\"pubkeys\":[\"0x889856edb78ebcd7773d41dd18cf1344cba272dd9fecd6b2e1ec83d833243829b47b4863f43cb89dfb7423b1c13b16bc\"]}";
+        exitCalldata = abi.encodeWithSelector(
+            P2pMessageSender.send.selector, text
         );
     }
 
-    function allowPilotToDeposit() private {
+    function allowPilotToSendMessage() private {
         bytes memory txsForMultCall = getTxsForMultiCall();
         bytes memory multiSendCallData = abi.encodeWithSelector(
             MultiSendCallOnly.multiSend.selector, txsForMultCall
@@ -216,7 +180,7 @@ contract Deposit is Test {
 
     function getAllowTargetCalldata() private pure returns(bytes memory allowTargetCalldata) {
         uint16 role = ROLE;
-        address targetAddress = address(p2pEth2Depositor);
+        address targetAddress = address(p2pMessageSender);
         Roles.ExecutionOptions options = Roles.ExecutionOptions.Send;
 
         allowTargetCalldata = abi.encodeWithSelector(
@@ -226,8 +190,8 @@ contract Deposit is Test {
 
     function getScopeAllowFunctionCalldata() private pure returns(bytes memory scopeAllowFunctionCalldata) {
         uint16 role = ROLE;
-        address targetAddress = address(p2pEth2Depositor);
-        bytes4 functionSig = P2pEth2Depositor.deposit.selector;
+        address targetAddress = address(p2pMessageSender);
+        bytes4 functionSig = P2pMessageSender.send.selector;
         Roles.ExecutionOptions options = Roles.ExecutionOptions.None;
 
         scopeAllowFunctionCalldata = abi.encodeWithSelector(
